@@ -23,23 +23,15 @@
   pixels[pixels_count+3] = cur_col.a; \
   pixels_count += 4;
 
-qoi_t *read_qoi(char *path, uint8_t *flag)
+qoi_info_t *read_qoi(FILE *file, uint8_t *flag)
 {
-  qoi_t *info = malloc(sizeof(qoi_t));
+  qoi_info_t *info = malloc(sizeof(qoi_info_t));
 
   rgb_t cur_col = (rgb_t) { 0, 0, 0, 255 };
   rgb_t seen_pixels[64]; 
   for (int i = 0; i < 64; i ++)
   {
-    seen_pixels[i] = (rgb_t) { 0, 0, 0, 255 };
-  }
-
-  FILE *file = fopen(path, "rb");
-
-  if (file == NULL)
-  {
-    *flag = 1;
-    return NULL;
+    seen_pixels[i] = (rgb_t) { 0, 0, 0, 0 };
   }
   
   fseek(file, 0, SEEK_END);
@@ -180,6 +172,5 @@ qoi_t *read_qoi(char *path, uint8_t *flag)
   info->pixels = pixels;
   info->pixels_size = pixels_count;
 
-  fclose(file);
   return info;
 }

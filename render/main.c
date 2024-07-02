@@ -24,7 +24,13 @@ uint8_t print_error(uint8_t flag)
 int main(int argc, char **argv)
 {
   uint8_t flag = 0; 
-  qoi_t *img_info = read_qoi(argv[1], &flag);
+
+  FILE *file = fopen(argv[1], "rb");
+  if (file == NULL) return print_error(1);
+
+  qoi_info_t *img_info = read_qoi(file, &flag);
+
+  fclose(file);
 
   if (img_info == NULL && print_error(flag) != 0) return 1;
   
@@ -101,6 +107,7 @@ int main(int argc, char **argv)
   int offset = 0;
 
   uint8_t *pixels = malloc(img_info->pixels_size);
+  SDL_Rect old_state;
 
   while (!should_quit) {
     SDL_GetMouseState(&lx, &ly);
@@ -125,13 +132,24 @@ int main(int argc, char **argv)
               break;
 
             case SDLK_o:
+              old_state = img_area;
+
               img_area.w *= ratio;
               img_area.h *= ratio;
+
+              img_area.x -= (img_area.w - old_state.w) / 2;
+              img_area.y -= (img_area.h - old_state.h) / 2;
+
               break;
 
             case SDLK_p: 
+              old_state = img_area;
+
               img_area.w = img_area.w / ratio;
               img_area.h = img_area.h / ratio;
+
+              img_area.x -= (img_area.w - old_state.w) / 2;
+              img_area.y -= (img_area.h - old_state.h) / 2;
               break;
 
             case SDLK_k:

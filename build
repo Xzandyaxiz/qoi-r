@@ -1,4 +1,1 @@
-# Compiling library
 gcc -o libqoir.so -fpic -shared src/qoir.c
-
-gcc -o main main.c -lqoir -L. -lSDL2 -lSDL2_image 
