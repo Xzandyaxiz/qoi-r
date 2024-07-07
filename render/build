@@ -1,1 +1,0 @@
-gcc -o main main.c -lqoir -L../ -lSDL2 -lSDL2_image 

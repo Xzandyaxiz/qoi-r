@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdint.h>
-#include "src/qoir.h"
+#include "../src/qoir.h"
 
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
@@ -23,18 +23,22 @@ uint8_t print_error(uint8_t flag)
 
 int main(int argc, char **argv)
 {
-  uint8_t flag = 0; 
+  uint8_t flag; 
 
   FILE *file = fopen(argv[1], "rb");
   if (file == NULL) return print_error(1);
 
-  qoi_info_t *img_info = read_qoi(file, &flag);
+  // Get pixel data and other info
+  qoi_info_t *img_info = malloc(sizeof(qoi_info_t));
+  if ((flag = read_qoi(img_info, file)) != 0)
+  {
+    print_error(flag);
+    return 1;
+  }
 
   fclose(file);
 
-  if (img_info == NULL && print_error(flag) != 0) return 1;
-  
-
+  // The rest (i guess)
   if(SDL_Init(SDL_INIT_VIDEO) < 0)
   {
       printf("Failed to initialize the SDL2 library\n");
@@ -81,7 +85,7 @@ int main(int argc, char **argv)
   
   SDL_SetTextureBlendMode(qoi_texture, SDL_BLENDMODE_BLEND);
   
-  SDL_Surface *grid_surface = IMG_Load("grid.qoi");
+  SDL_Surface *grid_surface = IMG_Load("render/media/grid.qoi");
   SDL_Texture *grid_texture = SDL_CreateTextureFromSurface(renderer, grid_surface);
 
   int qoi_pitch = img_info->pixels_size;
@@ -230,8 +234,6 @@ int main(int argc, char **argv)
   free(img_info->pixels);
   free(img_info);
 
-
   SDL_Quit();
-  
   return 0;
 }

@@ -12,9 +12,13 @@ typedef struct {
   uint8_t r, g, b, a;
 } rgb_t;
 
-qoi_info_t *read_qoi(
-  FILE *file,
-  uint8_t *flag
+uint8_t read_qoi(
+  qoi_info_t *info,
+  FILE *file
+);
+
+uint8_t write_qoi(
+    uint8_t pixels
 );
 
 void *fill_qoi(

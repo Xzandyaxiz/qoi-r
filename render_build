@@ -1,0 +1,1 @@
+gcc render/main.c -o main -lqoir -L. -lSDL2 -lSDL2_image

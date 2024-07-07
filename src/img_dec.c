@@ -23,10 +23,8 @@
   pixels[pixels_count+3] = cur_col.a; \
   pixels_count += 4;
 
-qoi_info_t *read_qoi(FILE *file, uint8_t *flag)
+uint8_t read_qoi(qoi_info_t *info, FILE *file)
 {
-  qoi_info_t *info = malloc(sizeof(qoi_info_t));
-
   rgb_t cur_col = (rgb_t) { 0, 0, 0, 255 };
   rgb_t seen_pixels[64]; 
   for (int i = 0; i < 64; i ++)
@@ -43,8 +41,7 @@ qoi_info_t *read_qoi(FILE *file, uint8_t *flag)
 
   if (strcmp(buf, "qoif") != 0)
   {
-    *flag = 2;
-    return NULL;
+    return 2;
   }
 
   fread(buf, 4, 1, file);
@@ -172,5 +169,5 @@ qoi_info_t *read_qoi(FILE *file, uint8_t *flag)
   info->pixels = pixels;
   info->pixels_size = pixels_count;
 
-  return info;
+  return 0;
 }
