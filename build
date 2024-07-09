@@ -1,1 +1,0 @@
-gcc -o libqoir.so -fpic -shared src/img_dec.c src/img_enc.c

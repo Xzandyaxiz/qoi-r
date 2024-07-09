@@ -6,6 +6,8 @@ typedef struct {
   int pixels_size;
   uint32_t width;
   uint32_t height;
+  uint8_t channels;
+  uint8_t colorspace;
 } qoi_info_t;
 
 typedef struct {
