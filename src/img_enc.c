@@ -1,148 +1,59 @@
 #include <stdint.h>
-#include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
-#include <png.h>
+#include "qoir.h"
 
-int width, height;
-png_byte color_type;
-png_byte bit_depth;
-png_bytep *row_pointers = NULL;
+#define set_last_pixel()      \
+  pixels[i] = last_pixel[0];  \
+  pixels[i+1] = last_pixel[1];\
+  pixels[i+2] = last_pixel[2];\
+  pixels[i+3] = last_pixel[3];
 
-void read_png_file(char *filename) {
-  FILE *fp = fopen(filename, "rb");
-
-  png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-  if(!png) abort();
-
-  png_infop info = png_create_info_struct(png);
-  if(!info) abort();
-
-  if(setjmp(png_jmpbuf(png))) abort();
-
-  png_init_io(png, fp);
-
-  png_read_info(png, info);
-
-  width      = png_get_image_width(png, info);
-  height     = png_get_image_height(png, info);
-  color_type = png_get_color_type(png, info);
-  bit_depth  = png_get_bit_depth(png, info);
-
-  // Read any color_type into 8bit depth, RGBA format.
-  // See http://www.libpng.org/pub/png/libpng-manual.txt
-
-  if(bit_depth == 16)
-    png_set_strip_16(png);
-
-  if(color_type == PNG_COLOR_TYPE_PALETTE)
-    png_set_palette_to_rgb(png);
-
-  // PNG_COLOR_TYPE_GRAY_ALPHA is always 8 or 16bit depth.
-  if(color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
-    png_set_expand_gray_1_2_4_to_8(png);
-
-  if(png_get_valid(png, info, PNG_INFO_tRNS))
-    png_set_tRNS_to_alpha(png);
-
-  // These color_type don't have an alpha channel then fill it with 0xff.
-  if(color_type == PNG_COLOR_TYPE_RGB ||
-     color_type == PNG_COLOR_TYPE_GRAY ||
-     color_type == PNG_COLOR_TYPE_PALETTE)
-    png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
-
-  if(color_type == PNG_COLOR_TYPE_GRAY ||
-     color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
-    png_set_gray_to_rgb(png);
-
-  png_read_update_info(png, info);
-
-  if (row_pointers) abort();
-
-  row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * height);
-  for(int y = 0; y < height; y++) {
-    row_pointers[y] = (png_byte*)malloc(png_get_rowbytes(png,info));
-  }
-
-  png_read_image(png, row_pointers);
-
-  fclose(fp);
-
-  png_destroy_read_struct(&png, &info, NULL);
-}
-
-void write_png_file(char *filename) {
-  int y;
-
-  FILE *fp = fopen(filename, "wb");
-  if(!fp) abort();
-
-  png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-  if (!png) abort();
-
-  png_infop info = png_create_info_struct(png);
-  if (!info) abort();
-
-  if (setjmp(png_jmpbuf(png))) abort();
-
-  png_init_io(png, fp);
-
-  // Output is 8bit depth, RGBA format.
-  png_set_IHDR(
-    png,
-    info,
-    width, height,
-    8,
-    PNG_COLOR_TYPE_RGBA,
-    PNG_INTERLACE_NONE,
-    PNG_COMPRESSION_TYPE_DEFAULT,
-    PNG_FILTER_TYPE_DEFAULT
-  );
-  png_write_info(png, info);
-
-  // To remove the alpha channel for PNG_COLOR_TYPE_RGB format,
-  // Use png_set_filler().
-  //png_set_filler(png, 0, PNG_FILLER_AFTER);
-
-  if (!row_pointers) abort();
-
-  png_write_image(png, row_pointers);
-  png_write_end(png, NULL);
-
-  for(int y = 0; y < height; y++) {
-    free(row_pointers[y]);
-  }
-  free(row_pointers);
-
-  fclose(fp);
-
-  png_destroy_write_struct(&png, &info);
-}
-
-uint8_t *process_png_file(uint8_t *pixels) {
-  int i = 0;
-
-  for(int y = 0; y < height; y++) {
-    png_bytep row = row_pointers[y];
-    for(int x = 0; x < width; x++) {
-      png_bytep px = &(row[x * 4]);
-
-      pixels[i] = px[0];
-      pixels[i+1] = px[1];
-      pixels[i+2] = px[2];
-      pixels[i+3] = px[3];
-      i +=4;
-    }
-  }
-}
-
-uint8_t *png_to_bytes(char *path)
+int main()
 {
-  read_png_file(path);
-  uint8_t pixels[(width * height) * 4];
-  process_png_file(pixels);
+  return 0;
 }
 
-uint8_t write_qoi(uint8_t *pixels)
+uint8_t *qoi_to_bytes(uint8_t *pixels, uint32_t width, uint32_t height)
 {
+  uint8_t last_pixel[4] = { 0, 0, 0, 0 };
+  uint8_t bytes[(width * height)*4];
+  uint8_t counter = 0;
   
+  uint8_t channels = 3;
+  uint8_t colorspace = 0;
+
+  uint8_t header[14] = { 'q', 'o', 'i', 'f' };
+  memcpy(header+4, &width, 4);
+  memcpy(header+8, &height, 4);
+  memcpy(header+12, &channels, 1);
+  memcpy(header+13, &colorspace, 1);
+  memcpy(bytes, header, 14);
+  
+  uint8_t run_loops = 0;
+
+  for (int i = 0; i < ((width * height) * 4); i += 4)
+  {
+    // Checking run bytes
+    if (pixels[i] == last_pixel[0]   &&
+        pixels[i+1] == last_pixel[1] &&
+        pixels[i+2] == last_pixel[2] &&
+        pixels[i+3] == last_pixel[3])
+    {
+      run_loops ++;
+      if (run_loops >= 62)
+        continue;
+    }
+
+    // Writing run bytes
+    if (run_loops > 0)
+    {
+      uint8_t run_byte = 0xc0;
+      run_byte |= run_loops;
+      bytes[counter] = run_byte;
+      run_byte++;
+    }
+
+    run_loops = 0;
+  } 
 }
